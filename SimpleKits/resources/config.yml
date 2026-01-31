@@ -1,6 +1,6 @@
-# Simple Kits Configuration v1.0
+# Simple Kits Configuration v1.1
 # Advanced kit management system with GUI creation and editing
-# Version: 1.0
+# Version: 1.1
 
 # ============================================
 # GENERAL SETTINGS
@@ -101,6 +101,10 @@ creation:
   # Prevents creating empty kits
   require-items: true
 
+  # Allow kits with only commands (no items required)
+  # When enabled, kits can be created with only commands
+  allow-commands-only: true
+
   # Permission format for new kits
   # Use {kit_id} as placeholder for kit's ID
   # Example: "kits.kit.{kit_id}" becomes "kits.kit.vip_kit"
@@ -142,13 +146,16 @@ gui:
   # Top-left is slot 0, bottom-right is slot 53
   button-positions:
     # Button to set kit display name
-    set-name: 47
+    set-name: 46
 
     # Button to set kit cooldown
-    set-cooldown: 48
+    set-cooldown: 47
 
     # Button to set kit permission
-    set-permission: 49
+    set-permission: 48
+
+    # Button to set kit commands
+    set-commands: 49
 
     # Cancel button (discard changes)
     cancel: 50
@@ -157,7 +164,7 @@ gui:
     save: 51
 
     # Info button (show instructions)
-    info: 53
+    info: 52
 
 # ============================================
 # MESSAGES CUSTOMIZATION
