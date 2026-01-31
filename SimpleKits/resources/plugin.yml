@@ -1,5 +1,5 @@
 name: SimpleKits
-version: '1.0'
+version: '1.1'
 main: com.akiisx.SimpleKits.SimpleKits
 api-version: '1.21'
 author: akiisx
@@ -19,6 +19,7 @@ commands:
       /kits edit <name> - Edit kit (admin)
       /kits delete <name> - Delete kit (admin)
       /kits reload - Reload config (admin)
+      /kits fixtimes - Fix old timestamps (admin)
 
 permissions:
   kits.admin:
@@ -29,6 +30,9 @@ permissions:
     default: op
   kits.cooldown.bypass.all:
     description: Bypass all kit cooldowns
+    default: op
+  kits.cooldown.bypass.*:
+    description: Bypass all kit cooldowns (alternative)
     default: op
   kits.help:
     description: Access to help command
