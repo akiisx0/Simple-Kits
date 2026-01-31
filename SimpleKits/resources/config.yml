@@ -1,0 +1,249 @@
+# Simple Kits Configuration v1.0
+# Advanced kit management system with GUI creation and editing
+# Version: 1.0
+
+# ============================================
+# GENERAL SETTINGS
+# ============================================
+general:
+  # Time format "detailed" for cooldown displays
+  cooldown-format: "detailed"
+
+  # Default cooldown for new kits in seconds
+  # Default: 86400 (24 hours / 1 day)
+  # Examples: 3600 (1 hour), 1800 (30 minutes), 604800 (1 week)
+  default-cooldown: 86400
+
+  # Enable sound effects when players claim kits
+  # Sound: ENTITY_PLAYER_LEVELUP at player's location
+  # Disable if you want a silent experience
+  enable-sounds: true
+
+  # Enable particle effects when players claim kits
+  # Particle: HAPPY_VILLAGER around player
+  # Disable for better performance on low-end servers
+  enable-particles: true
+
+  # Auto-save interval in minutes
+  # How often kits.yml is automatically saved to prevent data loss
+  # Set to 0 to disable auto-save
+  # Default: 5 minutes (recommended for safety)
+  auto-save-interval: 5
+
+# ============================================
+# LOGGING SETTINGS
+# ============================================
+logging:
+  # Enable or disable all logging features
+  # When disabled, no log files will be created
+  enabled: true
+
+  # Folder where log files will be stored
+  # Relative to plugin's data folder
+  folder: "logs"
+
+  # Types of events to log
+  log-types:
+    # Log when players claim kits
+    # Useful for tracking kit usage and player activity
+    claim: true
+
+    # Log when admins create new kits
+    create: true
+
+    # Log when admins edit existing kits
+    edit: true
+
+    # Log when admins delete kits
+    delete: true
+
+    # Log plugin errors and warnings
+    # Recommended: true for debugging
+    error: true
+
+  # Maximum number of log files to keep
+  # Older files will be automatically deleted
+  # Set to 0 to keep all files indefinitely
+  max-log-files: 30
+
+  # Log file rotation schedule
+  # Options:
+  #   - "daily": New log file each day
+  #   - "weekly": New log file each week
+  #   - "monthly": New log file each month
+  rotation: "daily"
+
+# ============================================
+# KIT CREATION SETTINGS
+# ============================================
+creation:
+  # Use player's hotbar for quick kit creation
+  # When enabled, /kits create will use items from hotbar
+  # When disabled, GUI mode is always used
+  use-hotbar: true
+
+  # Maximum number of items allowed in a kit
+  # Prevents creating kits with too many items
+  # Range: 1-54 (limited by inventory size)
+  max-items: 36
+
+  # Allow enchanted items in kits
+  # When disabled, all enchantments will be stripped from items
+  # Set to false if you want to prevent OP kits
+  allow-enchantments: true
+
+  # Allow custom item names and lore in kits
+  # When disabled, custom names and lore will be stripped
+  # Set to false for consistency across kits
+  allow-custom-names: true
+
+  # Require at least one item when creating/editing kits
+  # Prevents creating empty kits
+  require-items: true
+
+  # Permission format for new kits
+  # Use {kit_id} as placeholder for kit's ID
+  # Example: "kits.kit.{kit_id}" becomes "kits.kit.vip_kit"
+  permission-format: "kits.kit.{kit_id}"
+
+  # Automatically generate kit ID from display name
+  # When enabled: "VIP Kit" becomes "vip_kit"
+  # When disabled: admin must specify exact ID
+  auto-generate-id: true
+
+# ============================================
+# GUI SETTINGS
+# ============================================
+gui:
+  # Color for GUI titles
+  # Use & codes for colors (e.g., "&6&l" for gold bold)
+  title-color: "&6&l"
+
+  # Color for GUI subtitles/kit names
+  subtitle-color: "&7"
+
+  # Size of kit creation/editing GUI
+  # Options: 9, 18, 27, 36, 45, 54 (must be multiple of 9)
+  # Larger size = more space for items
+  creation-gui-size: 54
+
+  # Background color for GUI
+  # Must be a valid Minecraft color name
+  # Options: WHITE, ORANGE, MAGENTA, LIGHT_BLUE, YELLOW, LIME, PINK,
+  #          GRAY, LIGHT_GRAY, CYAN, PURPLE, BLUE, BROWN, GREEN, RED, BLACK
+  background-color: "LIGHT_GRAY"
+
+  # Show info button in creation/editing GUI
+  # Provides instructions for new users
+  show-info-button: true
+
+  # Button positions in creation/editing GUI
+  # Slots range from 0-53 (9 rows of 6)
+  # Top-left is slot 0, bottom-right is slot 53
+  button-positions:
+    # Button to set kit display name
+    set-name: 47
+
+    # Button to set kit cooldown
+    set-cooldown: 48
+
+    # Button to set kit permission
+    set-permission: 49
+
+    # Cancel button (discard changes)
+    cancel: 50
+
+    # Save button (apply changes)
+    save: 51
+
+    # Info button (show instructions)
+    info: 53
+
+# ============================================
+# MESSAGES CUSTOMIZATION
+# ============================================
+messages:
+  # Plugin prefix shown before all messages
+  # Use & for color codes
+  prefix: "&6&lSimple Kits &8» &7"
+
+  # Success message when claiming a kit
+  # Placeholders: {kit_name} - kit's display name
+  claim-success: "&aYou have claimed the {kit_name} kit!"
+
+  # Error message when kit is on cooldown
+  # Placeholders: {kit_name} - kit's display name, {time_left} - remaining time
+  claim-cooldown: "&cThis kit is on cooldown for {time_left}!"
+
+  # Error message when player lacks permission for kit
+  # Placeholders: {kit_name} - kit's display name
+  claim-no-permission: "&cYou don't have permission to claim this kit!"
+
+  # Success message when creating a kit
+  # Placeholders: {kit_name} - kit's display name
+  create-success: "&aKit {kit_name} has been created successfully!"
+
+  # Success message when editing a kit
+  # Placeholders: {kit_name} - kit's display name
+  edit-success: "&aKit {kit_name} has been updated!"
+
+  # Success message when deleting a kit
+  # Placeholders: {kit_name} - kit's display name
+  delete-success: "&aKit {kit_name} has been deleted!"
+
+  # Success message when reloading configuration
+  reload-success: "&aConfiguration has been reloaded!"
+
+  # Error message when kit is not found
+  error-kit-not-found: "&cKit not found!"
+
+  # Error message when kit has no items
+  error-no-items: "&cThis kit has no items!"
+
+  # Warning when inventory is full during kit claim
+  error-inventory-full: "&eYour inventory was full! Some items were dropped."
+
+  # Error message when console tries to use player-only command
+  error-player-only: "&cThis command requires a player!"
+
+  # Error message when player lacks permission
+  error-no-permission: "&cYou don't have permission!"
+
+  # Error message when trying to create duplicate kit
+  error-kit-exists: "&cKit already exists!"
+
+  # Message shown when no kits are available
+  no-kits-available: "&7No kits available."
+
+# ============================================
+# COOLDOWN BYPASS PERMISSIONS
+# ============================================
+cooldown-bypass:
+  # Permission to bypass ALL kit cooldowns
+  # Default: "kits.cooldown.bypass.all"
+  bypass-all: "kits.cooldown.bypass.all"
+
+  # Permission format to bypass specific kit cooldowns
+  # Use {kit_id} as placeholder for kit's ID
+  # Example: "kits.cooldown.bypass.{kit_id}" becomes "kits.cooldown.bypass.vip_kit"
+  bypass-format: "kits.cooldown.bypass.{kit_id}"
+
+# ============================================
+# UPDATE CHECKING
+# ============================================
+update-check:
+  # Enable automatic update checking
+  # Checks for new versions of the plugin
+  enabled: true
+
+  # How often to check for updates (in seconds)
+  # Default: 86400 (24 hours)
+  # Recommended not to set lower than 3600 (1 hour)
+  check-interval: 86400
+
+  # Notify admins when they join if update is available
+  # Requires kits.admin permission
+  notify-on-join: true
+
+  # Show update notifications in console
+  notify-console: true

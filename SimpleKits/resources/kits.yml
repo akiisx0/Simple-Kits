@@ -1,0 +1,16 @@
+  starter:
+    name: "Starter Kit"
+    cooldown: 86400
+    permission: "kits.kit.starter"
+    creator: "akiisx"
+    created: 1700000000000
+    items:
+      - type: DIAMOND_SWORD
+        amount: 1
+        name: "Starter Sword"
+        lore:
+          - "A basic sword for beginners"
+          - "Perfect for starting out!"
+        enchants:
+          sharpness: 2
+          unbreaking: 1

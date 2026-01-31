@@ -1,0 +1,47 @@
+# Simple Kits Messages v1.0
+# All messages support color codes with &
+
+# General Messages
+prefix: "&6&lSimple &f&lKits &8» &7"
+no-permission: "&cYou don't have permission!"
+player-only: "&cThis command requires a player!"
+invalid-usage: "&cInvalid usage!"
+gui-disabled: "&cGUI is disabled!"
+
+# Kit Messages
+kits:
+  none-available: "&7No kits available."
+  not-found: "&cKit not found!"
+  no-permission-kit: "&cNo permission for this kit!"
+  on-cooldown: "&cKit on cooldown for %time%"
+  claimed: "&aKit claimed successfully!"
+  empty: "&cThis kit is empty!"
+  inventory-full: "&eYour inventory was full! Some items were dropped."
+
+# Admin Messages
+admin:
+  create-success: "&aKit created successfully!"
+  delete-success: "&aKit deleted!"
+  edit-success: "&aKit updated!"
+  reload-success: "&aConfiguration reloaded!"
+  list-header: "&6Available Kits"
+
+# GUI Messages
+gui:
+  main-title: "&6&lKits &8» &7Your Kits"
+  admin-title: "&6&lKits &8» &eAdmin Panel"
+  create-title: "&6&lCreate Kit: &e%kit%"
+  edit-title: "&6&lEdit Kit: &e%kit%"
+  delete-title: "&6&lConfirm Delete: &c%kit%"
+
+# Help Messages
+help:
+  header: "&6Kits Help Menu"
+  line-kits: "&e/kits &7- Show available kits"
+  line-claim: "&e/kits <name> &7- Claim a kit"
+  line-gui: "&e/kits gui &7- Open GUI menu"
+  line-create: "&e/kits create <name> <cooldown> &7- Create kit"
+  line-delete: "&e/kits delete <name> &7- Delete kit"
+  line-edit: "&e/kits edit <name> &7- Edit kit"
+  line-reload: "&e/kits reload &7- Reload config"
+  line-help: "&e/kits help &7- Show this menu"

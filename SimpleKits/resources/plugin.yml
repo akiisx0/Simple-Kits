@@ -1,0 +1,35 @@
+name: SimpleKits
+version: '1.0'
+main: com.akiisx.SimpleKits.SimpleKits
+api-version: '1.21'
+author: akiisx
+description: Advanced kit management system with GUI creation
+
+commands:
+  kits:
+    description: Manage kits
+    aliases: [kit]
+    usage: |
+      /kits - Show available kits
+      /kits <name> - Claim kit
+      /kits help - Show help
+      /kits list - Show all kits (admin)
+      /kits info <kit> - Show kit info (admin)
+      /kits create <name> <cooldown> - Create kit (admin)
+      /kits edit <name> - Edit kit (admin)
+      /kits delete <name> - Delete kit (admin)
+      /kits reload - Reload config (admin)
+
+permissions:
+  kits.admin:
+    description: Access to all admin commands
+    default: op
+  kits.kit.*:
+    description: Access to all kits
+    default: op
+  kits.cooldown.bypass.all:
+    description: Bypass all kit cooldowns
+    default: op
+  kits.help:
+    description: Access to help command
+    default: false
