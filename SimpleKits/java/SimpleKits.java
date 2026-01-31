@@ -27,8 +27,12 @@ import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.potion.PotionType;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
@@ -81,7 +85,7 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
         getServer().getPluginManager().registerEvents(this, this);
         Objects.requireNonNull(getCommand("kits")).setExecutor(this);
         Objects.requireNonNull(getCommand("kits")).setTabCompleter(this);
-        getLogger().info("Kits v6.0 enabled!");
+        getLogger().info("Kits v1.1 enabled!");
     }
 
     @Override
@@ -332,7 +336,7 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
             if (isPlayer && !player.hasPermission(permission)) continue;
 
             String displayName = kitsConfig.getString(kitId + ".name", kitId);
-            displayName = legacyColor(displayName);
+            displayName = stripItalic(displayName);
             long cooldown = kitsConfig.getLong(kitId + ".cooldown",
                     getConfig().getLong("general.default-cooldown", 86400));
 
@@ -371,7 +375,7 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
         sender.sendMessage(legacyColor("&6&l=== All Kits ===&r"));
         for (String kitId : kitsSection.getKeys(false)) {
             String displayName = kitsConfig.getString(kitId + ".name", kitId);
-            String coloredName = legacyColor(displayName);
+            String coloredName = stripItalic(displayName);
             long cooldown = kitsConfig.getLong(kitId + ".cooldown",
                     getConfig().getLong("general.default-cooldown", 86400));
             String permission = kitsConfig.getString(kitId + ".permission",
@@ -399,7 +403,7 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
         }
 
         String displayName = kitsConfig.getString(cleanKitId + ".name", cleanKitId);
-        String coloredName = legacyColor(displayName);
+        String coloredName = stripItalic(displayName);
         long cooldown = kitsConfig.getLong(cleanKitId + ".cooldown",
                 getConfig().getLong("general.default-cooldown", 86400));
         String permission = kitsConfig.getString(cleanKitId + ".permission",
@@ -465,7 +469,7 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
             return;
         }
 
-        KitCreationSession session = new KitCreationSession(cleanKitId, kitName, cooldownSeconds);
+        KitCreationSession session = new KitCreationSession(cleanKitId, stripItalic(kitName), cooldownSeconds);
         creationSessions.put(playerId, session);
         openKitCreationGUI(player, session, false);
         player.sendMessage(legacyColor("&eKit creation started! Add items and configure settings."));
@@ -507,6 +511,7 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
         if (isEdit) {
             String kitId = session.getKitId();
             List<?> itemsData = kitsConfig.getList(kitId + ".items", Collections.emptyList());
+            List<?> commandsData = kitsConfig.getList(kitId + ".commands", Collections.emptyList());
             int maxItems = getConfig().getInt("creation.max-items", 36);
             int itemCount = 0;
             int slotIndex = 10;
@@ -540,12 +545,13 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
             }
         }
 
-        int setNameSlot = getConfig().getInt("gui.button-positions.set-name", 47);
-        int setCooldownSlot = getConfig().getInt("gui.button-positions.set-cooldown", 48);
-        int setPermissionSlot = getConfig().getInt("gui.button-positions.set-permission", 49);
+        int setNameSlot = getConfig().getInt("gui.button-positions.set-name", 46);
+        int setCooldownSlot = getConfig().getInt("gui.button-positions.set-cooldown", 47);
+        int setPermissionSlot = getConfig().getInt("gui.button-positions.set-permission", 48);
+        int setCommandsSlot = getConfig().getInt("gui.button-positions.set-commands", 49);
         int cancelSlot = getConfig().getInt("gui.button-positions.cancel", 50);
         int saveSlot = getConfig().getInt("gui.button-positions.save", 51);
-        int infoSlot = getConfig().getInt("gui.button-positions.info", 53);
+        int infoSlot = getConfig().getInt("gui.button-positions.info", 52);
 
         String currentPermission = session.getPermission() != null ? session.getPermission() :
                 getConfig().getString("creation.permission-format", "kits.kit.{kit_id}").replace("{kit_id}", session.getKitId());
@@ -560,6 +566,9 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
         ItemStack setPermission = createButton(Material.PAPER, "&bEdit Permission", "&7Current: &f" + cleanPermission, "&7Click to change permission");
         setButtonTag(setPermission, "set_permission"); if (setPermissionSlot < gui.getSize()) gui.setItem(setPermissionSlot, setPermission);
 
+        ItemStack setCommands = createButton(Material.COMMAND_BLOCK, "&dEdit Commands", "&7Current: &f" + (session.getCommands().size()) + " commands", "&7Click to add/remove commands", "&7Use %player% as player placeholder");
+        setButtonTag(setCommands, "set_commands"); if (setCommandsSlot < gui.getSize()) gui.setItem(setCommandsSlot, setCommands);
+
         ItemStack cancel = createButton(Material.RED_DYE, "&cCancel", "&7Cancel and exit");
         setButtonTag(cancel, "cancel"); if (cancelSlot < gui.getSize()) gui.setItem(cancelSlot, cancel);
 
@@ -570,7 +579,8 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
             ItemStack info = createButton(Material.BOOK, "&6Info",
                     "&7Drag items from your inventory", "&7into the empty area above", "&7Configure settings below", "",
                     "&eKit ID: &f" + session.getKitId(), "&eDisplay: &f" + session.getDisplayName(),
-                    "&eCooldown: &f" + formatTime(session.getCooldownSeconds()), "&ePermission: &f" + cleanPermission);
+                    "&eCooldown: &f" + formatTime(session.getCooldownSeconds()), "&ePermission: &f" + cleanPermission,
+                    "&eCommands: &f" + session.getCommands().size());
             setButtonTag(info, "info"); gui.setItem(infoSlot, info);
         }
 
@@ -604,18 +614,23 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
             }
         }
 
-        if (getConfig().getBoolean("creation.require-items", true) && items.isEmpty()) {
+        // Check if we require items (configurable)
+        boolean requireItems = getConfig().getBoolean("creation.require-items", true);
+        boolean allowCommandsOnly = getConfig().getBoolean("creation.allow-commands-only", false);
+
+        if (requireItems && items.isEmpty() && (!allowCommandsOnly || session.getCommands().isEmpty())) {
             player.sendMessage(getMessage("error-no-items"));
             return;
         }
 
         String kitId = session.getKitId();
-        String displayName = legacyColor(session.getDisplayName());
+        String displayName = stripItalic(session.getDisplayName());
         String cleanPermission = stripColor(session.getPermission());
-        kitsConfig.set(kitId + ".name", session.getDisplayName());
+        kitsConfig.set(kitId + ".name", displayName);
         kitsConfig.set(kitId + ".cooldown", session.getCooldownSeconds());
         kitsConfig.set(kitId + ".permission", cleanPermission);
         kitsConfig.set(kitId + ".items", items);
+        kitsConfig.set(kitId + ".commands", session.getCommands());
         kitsConfig.set(kitId + ".creator", player.getName());
 
         // Use the current time for new kites
@@ -629,8 +644,9 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
         String message = getMessage("create-success").replace("{kit_name}", displayName);
         player.sendMessage(legacyColor(message));
         player.sendMessage(legacyColor("&7Items: &f" + items.size() + " &7| Cooldown: &f" + formatTime(session.getCooldownSeconds())));
+        player.sendMessage(legacyColor("&7Commands: &f" + session.getCommands().size()));
         player.sendMessage(legacyColor("&7Permission: &f" + cleanPermission));
-        logAction(player.getName(), "created kit: " + kitId + " (" + displayName + ") with " + items.size() + " items");
+        logAction(player.getName(), "created kit: " + kitId + " (" + displayName + ") with " + items.size() + " items and " + session.getCommands().size() + " commands");
     }
 
     private void editKit(Player player, String kitName) {
@@ -648,7 +664,10 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
         String permission = kitsConfig.getString(cleanKitId + ".permission", getConfig().getString("creation.permission-format", "kits.kit.{kit_id}").replace("{kit_id}", cleanKitId));
         permission = stripColor(permission);
 
-        KitCreationSession session = new KitCreationSession(cleanKitId, displayName, cooldown, permission);
+        List<String> commands = kitsConfig.getStringList(cleanKitId + ".commands");
+
+        KitCreationSession session = new KitCreationSession(cleanKitId, stripItalic(displayName), cooldown, permission);
+        session.setCommands(commands);
         creationSessions.put(player.getUniqueId(), session);
         lastChatInput.remove(player.getUniqueId());
         openKitCreationGUI(player, session, true);
@@ -682,17 +701,22 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
             }
         }
 
-        if (getConfig().getBoolean("creation.require-items", true) && items.isEmpty()) {
+        // Check if we require items (configurable)
+        boolean requireItems = getConfig().getBoolean("creation.require-items", true);
+        boolean allowCommandsOnly = getConfig().getBoolean("creation.allow-commands-only", false);
+
+        if (requireItems && items.isEmpty() && (!allowCommandsOnly || session.getCommands().isEmpty())) {
             player.sendMessage(getMessage("error-no-items"));
             return;
         }
 
         String kitId = session.getKitId();
         String cleanPermission = stripColor(session.getPermission());
-        kitsConfig.set(kitId + ".name", session.getDisplayName());
+        kitsConfig.set(kitId + ".name", stripItalic(session.getDisplayName()));
         kitsConfig.set(kitId + ".cooldown", session.getCooldownSeconds());
         kitsConfig.set(kitId + ".permission", cleanPermission);
         kitsConfig.set(kitId + ".items", items);
+        kitsConfig.set(kitId + ".commands", session.getCommands());
 
         // Check and repair the old created timestamp if necessary
         long currentCreated = kitsConfig.getLong(kitId + ".created", 0);
@@ -708,11 +732,12 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
         lastChatInput.remove(player.getUniqueId());
         player.closeInventory();
 
-        String displayName = legacyColor(session.getDisplayName());
+        String displayName = stripItalic(session.getDisplayName());
         String message = getMessage("edit-success").replace("{kit_name}", displayName);
         player.sendMessage(legacyColor(message));
+        player.sendMessage(legacyColor("&7Commands: &f" + session.getCommands().size()));
         player.sendMessage(legacyColor("&7Permission: &f" + cleanPermission));
-        logAction(player.getName(), "edited kit: " + kitId + " (" + displayName + ")");
+        logAction(player.getName(), "edited kit: " + kitId + " (" + displayName + ") with " + items.size() + " items and " + session.getCommands().size() + " commands");
     }
 
     private void deleteKit(CommandSender sender, String kitName) {
@@ -726,7 +751,7 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
         }
 
         String displayName = kitsConfig.getString(cleanKitId + ".name", cleanKitId);
-        String coloredName = legacyColor(displayName);
+        String coloredName = stripItalic(displayName);
         kitsConfig.set(cleanKitId, null);
         saveKitsConfig();
 
@@ -740,9 +765,7 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
     }
 
     private void claimKit(Player player, String kitName) {
-        String cleanKitId = getConfig().getBoolean("creation.auto-generate-id", true)
-                ? stripColor(kitName.toLowerCase().replace(" ", "_"))
-                : stripColor(kitName.toLowerCase());
+        String cleanKitId = stripColor(kitName.toLowerCase().replace(" ", "_"));
 
         if (!kitsConfig.contains(cleanKitId)) {
             player.sendMessage(getMessage("error-kit-not-found"));
@@ -754,7 +777,7 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
 
         if (!player.hasPermission(permission)) {
             String displayName = kitsConfig.getString(cleanKitId + ".name", cleanKitId);
-            String coloredName = legacyColor(displayName);
+            String coloredName = stripItalic(displayName);
             String message = getMessage("claim-no-permission").replace("{kit_name}", coloredName);
             player.sendMessage(legacyColor(message));
             player.sendMessage(legacyColor("&7Required permission: &f" + permission));
@@ -770,7 +793,7 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
 
         if (timeLeft > 0 && !canBypass) {
             String displayName = kitsConfig.getString(cleanKitId + ".name", cleanKitId);
-            String coloredName = legacyColor(displayName);
+            String coloredName = stripItalic(displayName);
             String timeFormat = getConfig().getString("general.cooldown-format", "detailed");
             String formattedTime = timeFormat.equals("simple") ? formatTime(timeLeft / 1000) : formatDetailedTime(timeLeft / 1000);
             String message = getMessage("claim-cooldown").replace("{kit_name}", coloredName).replace("{time_left}", formattedTime);
@@ -779,7 +802,9 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
         }
 
         List<?> itemsData = kitsConfig.getList(cleanKitId + ".items");
-        if (itemsData == null || itemsData.isEmpty()) {
+        List<String> commands = kitsConfig.getStringList(cleanKitId + ".commands");
+
+        if ((itemsData == null || itemsData.isEmpty()) && commands.isEmpty()) {
             player.sendMessage(getMessage("error-no-items"));
             return;
         }
@@ -787,18 +812,27 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
         int itemsGiven = 0;
         List<ItemStack> leftoverItems = new ArrayList<>();
 
-        for (Object itemObj : itemsData) {
-            if (itemObj instanceof Map) {
-                try {
-                    ItemStack item = deserializeItem((Map<String, Object>) itemObj);
-                    if (item != null) {
-                        HashMap<Integer, ItemStack> leftovers = player.getInventory().addItem(item);
-                        if (leftovers.isEmpty()) itemsGiven++; else leftoverItems.addAll(leftovers.values());
+        // Give items
+        if (itemsData != null) {
+            for (Object itemObj : itemsData) {
+                if (itemObj instanceof Map) {
+                    try {
+                        ItemStack item = deserializeItem((Map<String, Object>) itemObj);
+                        if (item != null) {
+                            HashMap<Integer, ItemStack> leftovers = player.getInventory().addItem(item);
+                            if (leftovers.isEmpty()) itemsGiven++; else leftoverItems.addAll(leftovers.values());
+                        }
+                    } catch (ClassCastException e) {
+                        getLogger().warning("Failed to cast item data for kit " + cleanKitId);
                     }
-                } catch (ClassCastException e) {
-                    getLogger().warning("Failed to cast item data for kit " + cleanKitId);
                 }
             }
+        }
+
+        // Execute commands
+        for (String command : commands) {
+            String processedCommand = command.replace("%player%", player.getName());
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand);
         }
 
         if (!leftoverItems.isEmpty()) {
@@ -806,13 +840,17 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
             player.sendMessage(getMessage("error-inventory-full"));
         }
 
-        if (itemsGiven > 0 || !leftoverItems.isEmpty()) {
+        if (itemsGiven > 0 || !leftoverItems.isEmpty() || !commands.isEmpty()) {
             if (!canBypass) setLastUsed(player.getName(), cleanKitId);
 
             String displayName = kitsConfig.getString(cleanKitId + ".name", cleanKitId);
-            String coloredName = legacyColor(displayName);
+            String coloredName = stripItalic(displayName);
             String message = getMessage("claim-success").replace("{kit_name}", coloredName);
             player.sendMessage(legacyColor(message));
+
+            if (!commands.isEmpty()) {
+                player.sendMessage(legacyColor("&7Executed &f" + commands.size() + " &7commands."));
+            }
 
             if (getConfig().getBoolean("general.enable-sounds", true)) {
                 player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
@@ -821,7 +859,7 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
                 player.spawnParticle(Particle.HAPPY_VILLAGER, player.getLocation().add(0, 1, 0), 20, 0.5, 0.5, 0.5, 0.1);
             }
 
-            logUsage(player, cleanKitId);
+            logUsage(player, cleanKitId, itemsGiven, commands.size());
         }
     }
 
@@ -995,6 +1033,21 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
                 session.setWaitingForInput("permission");
                 lastChatInput.put(player.getUniqueId(), System.currentTimeMillis());
                 break;
+            case "set_commands":
+                player.closeInventory();
+                player.sendMessage(legacyColor("&eEnter commands for the kit (one per line):"));
+                player.sendMessage(legacyColor("&7Use %player% as player placeholder"));
+                player.sendMessage(legacyColor("&7Examples:"));
+                player.sendMessage(legacyColor("&7- givekey normalkey 1 %player%"));
+                player.sendMessage(legacyColor("&7- eco give %player% 1000"));
+                player.sendMessage(legacyColor("&7Type 'done' when finished, 'cancel' to cancel"));
+                player.sendMessage(legacyColor("&7Current commands:"));
+                for (String cmd : session.getCommands()) {
+                    player.sendMessage(legacyColor("&7- &f" + cmd));
+                }
+                session.setWaitingForInput("commands");
+                lastChatInput.put(player.getUniqueId(), System.currentTimeMillis());
+                break;
         }
     }
 
@@ -1070,7 +1123,7 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
             lastChatInput.remove(playerId);
             switch (waitingFor) {
                 case "name":
-                    session.setDisplayName(input);
+                    session.setDisplayName(stripItalic(input));
                     player.sendMessage(legacyColor("&aDisplay name set to: &f" + input));
                     break;
                 case "cooldown":
@@ -1094,6 +1147,18 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
                     session.setPermission(permission);
                     player.sendMessage(legacyColor("&aPermission set to: &f" + permission));
                     break;
+                case "commands":
+                    if (input.equalsIgnoreCase("done")) {
+                        player.sendMessage(legacyColor("&aCommands saved: &f" + session.getCommands().size()));
+                    } else {
+                        session.addCommand(input);
+                        player.sendMessage(legacyColor("&aCommand added: &f" + input));
+                        player.sendMessage(legacyColor("&eEnter next command or type 'done' when finished:"));
+                        session.setWaitingForInput("commands");
+                        lastChatInput.put(playerId, System.currentTimeMillis());
+                        return;
+                    }
+                    break;
             }
             boolean isEdit = kitsConfig.contains(session.getKitId());
             openKitCreationGUI(player, session, isEdit);
@@ -1111,10 +1176,10 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
     private ItemStack createButton(Material material, String name, String... lore) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(Component.text(legacyColor(name)));
+        meta.displayName(Component.text(legacyColor(stripItalic(name))));
         if (lore.length > 0) {
             List<Component> lores = new ArrayList<>();
-            for (String line : lore) lores.add(Component.text(legacyColor(line)));
+            for (String line : lore) lores.add(Component.text(legacyColor(stripItalic(line))));
             meta.lore(lores);
         }
         item.setItemMeta(meta);
@@ -1141,21 +1206,55 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
         data.put("type", item.getType().name());
         data.put("amount", item.getAmount());
         ItemMeta meta = item.getItemMeta();
-        if (meta.hasDisplayName()) data.put("name", LegacyComponentSerializer.legacySection().serialize(meta.displayName()));
-        if (meta.hasLore()) {
-            List<String> lore = new ArrayList<>();
-            for (Component line : meta.lore()) lore.add(LegacyComponentSerializer.legacySection().serialize(line));
-            data.put("lore", lore);
-        }
-        if (meta.hasEnchants() && getConfig().getBoolean("creation.allow-enchantments", true)) {
-            Map<String, Integer> enchants = new HashMap<>();
-            for (Map.Entry<Enchantment, Integer> entry : meta.getEnchants().entrySet()) enchants.put(entry.getKey().getKey().getKey(), entry.getValue());
-            data.put("enchants", enchants);
-        }
-        if (!meta.getItemFlags().isEmpty()) {
-            List<String> flags = new ArrayList<>();
-            for (ItemFlag flag : meta.getItemFlags()) flags.add(flag.name());
-            data.put("flags", flags);
+        if (meta != null) {
+            if (meta.hasDisplayName()) {
+                String displayName = LegacyComponentSerializer.legacySection().serialize(meta.displayName());
+                data.put("name", stripItalic(displayName));
+            }
+            if (meta.hasLore()) {
+                List<String> lore = new ArrayList<>();
+                for (Component line : meta.lore()) {
+                    String lineStr = LegacyComponentSerializer.legacySection().serialize(line);
+                    lore.add(stripItalic(lineStr));
+                }
+                data.put("lore", lore);
+            }
+            if (meta.hasEnchants() && getConfig().getBoolean("creation.allow-enchantments", true)) {
+                Map<String, Integer> enchants = new HashMap<>();
+                for (Map.Entry<Enchantment, Integer> entry : meta.getEnchants().entrySet()) enchants.put(entry.getKey().getKey().getKey(), entry.getValue());
+                data.put("enchants", enchants);
+            }
+            if (!meta.getItemFlags().isEmpty()) {
+                List<String> flags = new ArrayList<>();
+                for (ItemFlag flag : meta.getItemFlags()) flags.add(flag.name());
+                data.put("flags", flags);
+            }
+
+            // Handle potions (using new API for 1.20.6+ with PotionType)
+            if (meta instanceof PotionMeta) {
+                PotionMeta potionMeta = (PotionMeta) meta;
+                if (!potionMeta.getCustomEffects().isEmpty()) {
+                    // Store custom effects
+                    List<Map<String, Object>> potionEffects = new ArrayList<>();
+                    for (PotionEffect effect : potionMeta.getCustomEffects()) {
+                        Map<String, Object> effectData = new HashMap<>();
+                        effectData.put("type", effect.getType().getKey().toString());
+                        effectData.put("duration", effect.getDuration());
+                        effectData.put("amplifier", effect.getAmplifier());
+                        effectData.put("ambient", effect.isAmbient());
+                        effectData.put("particles", effect.hasParticles());
+                        effectData.put("icon", effect.hasIcon());
+                        potionEffects.add(effectData);
+                    }
+                    data.put("potion_effects", potionEffects);
+                }
+
+                // Store base potion type if available (for vanilla potions)
+                PotionType potionType = potionMeta.getBasePotionType();
+                if (potionType != null) {
+                    data.put("base_potion_type", potionType.name());
+                }
+            }
         }
         return data;
     }
@@ -1166,26 +1265,84 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
             int amount = Integer.parseInt(data.getOrDefault("amount", "1").toString());
             ItemStack item = new ItemStack(material, amount);
             ItemMeta meta = item.getItemMeta();
-            if (data.containsKey("name") && getConfig().getBoolean("creation.allow-custom-names", true)) meta.displayName(LegacyComponentSerializer.legacySection().deserialize(data.get("name").toString()));
-            if (data.containsKey("lore") && getConfig().getBoolean("creation.allow-custom-names", true)) {
-                List<Component> lore = new ArrayList<>();
-                for (Object line : (List<?>) data.get("lore")) lore.add(LegacyComponentSerializer.legacySection().deserialize(line.toString()));
-                meta.lore(lore);
-            }
-            if (data.containsKey("enchants") && getConfig().getBoolean("creation.allow-enchantments", true)) {
-                Map<?, ?> enchants = (Map<?, ?>) data.get("enchants");
-                for (Map.Entry<?, ?> entry : enchants.entrySet()) {
-                    Enchantment enchant = Enchantment.getByKey(NamespacedKey.minecraft(entry.getKey().toString()));
-                    if (enchant != null) meta.addEnchant(enchant, Integer.parseInt(entry.getValue().toString()), true);
+
+            if (meta != null) {
+                if (data.containsKey("name") && getConfig().getBoolean("creation.allow-custom-names", true)) {
+                    String name = data.get("name").toString();
+                    meta.displayName(LegacyComponentSerializer.legacySection().deserialize(stripItalic(name)));
                 }
-            }
-            if (data.containsKey("flags")) {
-                List<?> flags = (List<?>) data.get("flags");
-                for (Object flag : flags) {
-                    try { meta.addItemFlags(ItemFlag.valueOf(flag.toString())); } catch (IllegalArgumentException ignored) {}
+                if (data.containsKey("lore") && getConfig().getBoolean("creation.allow-custom-names", true)) {
+                    List<Component> lore = new ArrayList<>();
+                    for (Object line : (List<?>) data.get("lore")) {
+                        String lineStr = line.toString();
+                        lore.add(LegacyComponentSerializer.legacySection().deserialize(stripItalic(lineStr)));
+                    }
+                    meta.lore(lore);
                 }
+                if (data.containsKey("enchants") && getConfig().getBoolean("creation.allow-enchantments", true)) {
+                    Map<?, ?> enchants = (Map<?, ?>) data.get("enchants");
+                    for (Map.Entry<?, ?> entry : enchants.entrySet()) {
+                        Enchantment enchant = Enchantment.getByKey(NamespacedKey.minecraft(entry.getKey().toString()));
+                        if (enchant != null) meta.addEnchant(enchant, Integer.parseInt(entry.getValue().toString()), true);
+                    }
+                }
+                if (data.containsKey("flags")) {
+                    List<?> flags = (List<?>) data.get("flags");
+                    for (Object flag : flags) {
+                        try { meta.addItemFlags(ItemFlag.valueOf(flag.toString())); } catch (IllegalArgumentException ignored) {}
+                    }
+                }
+
+                // Handle potions (using new API for 1.20.6+ with PotionType)
+                if (data.containsKey("potion_effects") && meta instanceof PotionMeta) {
+                    PotionMeta potionMeta = (PotionMeta) meta;
+                    List<?> effectsData = (List<?>) data.get("potion_effects");
+                    for (Object effectObj : effectsData) {
+                        if (effectObj instanceof Map) {
+                            Map<?, ?> effectMap = (Map<?, ?>) effectObj;
+                            try {
+                                String typeKey = effectMap.get("type").toString();
+                                PotionEffectType type = PotionEffectType.getByKey(NamespacedKey.fromString(typeKey));
+                                if (type != null) {
+                                    Object durationObj = effectMap.get("duration");
+                                    int duration = durationObj != null ? Integer.parseInt(durationObj.toString()) : 6000;
+
+                                    Object amplifierObj = effectMap.get("amplifier");
+                                    int amplifier = amplifierObj != null ? Integer.parseInt(amplifierObj.toString()) : 0;
+
+                                    Object ambientObj = effectMap.get("ambient");
+                                    boolean ambient = ambientObj != null && Boolean.parseBoolean(ambientObj.toString());
+
+                                    Object particlesObj = effectMap.get("particles");
+                                    boolean particles = particlesObj == null || Boolean.parseBoolean(particlesObj.toString());
+
+                                    Object iconObj = effectMap.get("icon");
+                                    boolean icon = iconObj == null || Boolean.parseBoolean(iconObj.toString());
+
+                                    PotionEffect effect = new PotionEffect(type, duration, amplifier, ambient, particles, icon);
+                                    potionMeta.addCustomEffect(effect, true);
+                                }
+                            } catch (Exception e) {
+                                getLogger().warning("Failed to deserialize potion effect: " + e.getMessage());
+                            }
+                        }
+                    }
+                }
+
+                // Handle base potion type
+                if (data.containsKey("base_potion_type") && meta instanceof PotionMeta) {
+                    PotionMeta potionMeta = (PotionMeta) meta;
+                    try {
+                        String baseTypeStr = data.get("base_potion_type").toString();
+                        PotionType baseType = PotionType.valueOf(baseTypeStr);
+                        potionMeta.setBasePotionType(baseType);
+                    } catch (Exception e) {
+                        getLogger().warning("Failed to set base potion type: " + e.getMessage());
+                    }
+                }
+
+                item.setItemMeta(meta);
             }
-            item.setItemMeta(meta);
             return item;
         } catch (Exception e) {
             getLogger().warning("Failed to deserialize item: " + e.getMessage());
@@ -1243,6 +1400,16 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
         }
     }
 
+    // New method to remove italic formatting
+    private String stripItalic(String text) {
+        if (text == null) return "";
+        // Remove §o and &o (italic) codes
+        text = text.replace("§o", "").replace("&o", "");
+        // Also remove any remaining italic formatting that might be embedded
+        text = text.replace("§r", "").replace("&r", "");
+        return text;
+    }
+
     private long getLastUsed(String playerName, String kitId) {
         Map<String, Long> playerCooldowns = cooldowns.get(playerName.toLowerCase());
         return playerCooldowns != null ? playerCooldowns.getOrDefault(kitId, 0L) : 0L;
@@ -1253,7 +1420,7 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
         playerCooldowns.put(kitId, System.currentTimeMillis());
     }
 
-    private void logUsage(Player player, String kitId) {
+    private void logUsage(Player player, String kitId, int itemsGiven, int commandsExecuted) {
         if (!getConfig().getBoolean("logging.enabled", true) || !getConfig().getBoolean("logging.log-types.claim", true)) return;
         try {
             File logsFolder = new File(getDataFolder(), getConfig().getString("logging.folder", "logs"));
@@ -1268,7 +1435,8 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
             File logFile = new File(logsFolder, fileName);
             FileWriter writer = new FileWriter(logFile, true);
             String timestamp = formatDateWithAMPM(System.currentTimeMillis());
-            String logLine = String.format("[%s] %s (%s) claimed kit: %s%n", timestamp, player.getName(), player.getUniqueId(), kitId);
+            String logLine = String.format("[%s] %s (%s) claimed kit: %s (items: %d, commands: %d)%n",
+                    timestamp, player.getName(), player.getUniqueId(), kitId, itemsGiven, commandsExecuted);
             writer.write(logLine);
             writer.close();
             int maxLogFiles = getConfig().getInt("logging.max-log-files", 30);
@@ -1359,6 +1527,7 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
         private String displayName;
         private long cooldownSeconds;
         private String permission;
+        private List<String> commands;
         private String waitingForInput;
 
         public KitCreationSession(String kitId, String displayName, long cooldownSeconds) {
@@ -1370,6 +1539,7 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
             this.displayName = displayName;
             this.cooldownSeconds = cooldownSeconds;
             this.permission = permission;
+            this.commands = new ArrayList<>();
             this.waitingForInput = null;
         }
 
@@ -1380,6 +1550,9 @@ public class SimpleKits extends JavaPlugin implements Listener, TabExecutor {
         public void setCooldownSeconds(long cooldownSeconds) { this.cooldownSeconds = cooldownSeconds; }
         public String getPermission() { return permission; }
         public void setPermission(String permission) { this.permission = permission; }
+        public List<String> getCommands() { return commands; }
+        public void setCommands(List<String> commands) { this.commands = commands; }
+        public void addCommand(String command) { this.commands.add(command); }
         public String getWaitingForInput() { return waitingForInput; }
         public void setWaitingForInput(String waitingForInput) { this.waitingForInput = waitingForInput; }
         public void clearWaitingForInput() { this.waitingForInput = null; }
